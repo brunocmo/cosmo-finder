@@ -1,6 +1,6 @@
 #include "stepMotor.h"
 
-int app_main() {
+extern "C" int app_main() {
 
     init();
 

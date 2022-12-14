@@ -2,15 +2,11 @@
 #define STEPMOTOR_H
 
 #include <stdio.h>
+#include <esp_log.h>
 #include <driver/gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-
-#define STEPX 26
-#define DIRX 16
-
-#define STEPY 25
-#define DIRY 27
+#include <string>
 
 void init();
 void testOutput();

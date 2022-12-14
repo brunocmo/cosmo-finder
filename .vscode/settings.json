@@ -1,5 +1,19 @@
 {
     "files.associations": {
-        "unity.h": "c"
+        "*.cpp": "cpp",
+        "unity.h": "c",
+        "inditelescope.h": "c",
+        "libastro.h": "c",
+        "defaultdevice.h": "c",
+        "parentdevice.h": "c",
+        "basedevice.h": "c",
+        "indibase.h": "c",
+        "*.ipp": "cpp",
+        "*.tcc": "cpp",
+        "unordered_map": "cpp",
+        "fstream": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "sstream": "cpp"
     }
 }
