@@ -5,6 +5,7 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
+#include <esp_log.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -24,6 +25,7 @@ public:
     void run(void);
     void setup(void);
 	void testServer(void);
+    void TrataClienteTCP(int socketCliente);
 
     WIFI::Wifi::state_e wifiState { WIFI::Wifi::state_e::NOT_INITIALIZED };
     WIFI::Wifi Wifi;
@@ -56,7 +58,7 @@ void Main::run(void)
         break;
     case WIFI::Wifi::state_e::CONNECTED:
         std::cout << "Wifi Status: CONNECTED\n";
-		// testServer();
+		testServer();
         break;
     case WIFI::Wifi::state_e::NOT_INITIALIZED:
         std::cout << "Wifi Status: NOT_INITIALIZED\n";
@@ -67,50 +69,60 @@ void Main::run(void)
     }
 }
 
+void Main::TrataClienteTCP(int socketCliente) {
+	char buffer[256];
+	int tamanhoRecebido;
+
+	if((tamanhoRecebido = recv(socketCliente, buffer, 256, 0)) < 0)
+		printf("Erro no recv()\n");
+    else 
+        printf("Valor lido: %s", buffer);
+}
+
 void Main::testServer(void) {
+	int servidorSocket;
 	int clienteSocket;
 	struct sockaddr_in servidorAddr;
+	struct sockaddr_in clienteAddr;
 	unsigned short servidorPorta = 16188;
-	const char *IP_Servidor = "192.168.0.173";
-	const char *mensagem = "Meih Fuhrer, I CAN WALK!";
-	char buffer[16];
-	unsigned int tamanhoMensagem;
+	unsigned int clienteLength;
 
-	int bytesRecebidos;
-	int totalBytesRecebidos;
-
-	totalBytesRecebidos = 0;
 	while(1) {
-
 		// Criar Socket
-		if((clienteSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+		if((servidorSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 			printf("Erro no socket()\n");
 
 		// Construir struct sockaddr_in
 		memset(&servidorAddr, 0, sizeof(servidorAddr)); // Zerando a estrutura de dados
 		servidorAddr.sin_family = AF_INET;
-		servidorAddr.sin_addr.s_addr = inet_addr(IP_Servidor);
+		servidorAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		servidorAddr.sin_port = htons(servidorPorta);
 
-		// Connect
-		if(connect(clienteSocket, (struct sockaddr *) &servidorAddr, 
-								sizeof(servidorAddr)) < 0)
-			printf("Erro no connect()\n");
+	    // Bind
+	    if(bind(servidorSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0)
+		printf("Falha no Bind\n");
 
-		tamanhoMensagem = strlen(mensagem);
+	    // Listen
+	    if(listen(servidorSocket, 10) < 0)
+		printf("Falha no Listen\n");	
 
-		if(send(clienteSocket, mensagem, tamanhoMensagem, 0) != tamanhoMensagem)
-			printf("Erro no envio: numero de bytes enviados diferente do esperado\n");
+        while(1) {
+            clienteLength = sizeof(clienteAddr);
+            if((clienteSocket = accept(servidorSocket, 
+                                    (struct sockaddr *) &clienteAddr, 
+                                    &clienteLength)) < 0)
+                printf("Falha no Accept\n");
+            
+            printf("Conexão do Cliente %s\n", inet_ntoa(clienteAddr.sin_addr));
+            
+            TrataClienteTCP(clienteSocket);
+            close(clienteSocket);
+        }
 
-		if((bytesRecebidos = recv(clienteSocket, buffer, 16-1, 0)) <= 0)
-			printf("Não recebeu o total de bytes enviados\n");
-		totalBytesRecebidos += bytesRecebidos;
-		buffer[bytesRecebidos] = '\0';
-		printf("%s\n", buffer);
+		close(servidorSocket);
 
-		close(clienteSocket);
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        ESP_LOGI( "TCP", "Fechando socket de conexao!");
+        vTaskDelay(pdMS_TO_TICKS(10000));
 	}
 
 

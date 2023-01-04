@@ -133,6 +133,14 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# Configuração do Wifi Configuration
+#
+CONFIG_ESP_WIFI_SSID="NUNES_2.4GHz"
+CONFIG_ESP_WIFI_PASSWORD="EN58360B"
+CONFIG_ESP_MAXIMUM_RETRY=5
+# end of Configuração do Wifi Configuration
+
+#
 # Compiler options
 #
 CONFIG_COMPILER_OPTIMIZATION_DEFAULT=y
