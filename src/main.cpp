@@ -11,142 +11,86 @@
 // #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include "freertos/queue.h"
 #include <unistd.h>
+#include <thread>
 
 #include "Gps6mv2.h"
+#include "StepMotor.h"
 
-// #include "wifi.h"
+const std::string encoderLogi {"STEPMOTOR"};
 
-// #define WIFI_SSID      CONFIG_ESP_WIFI_SSID
-// #define WIFI_PASS      CONFIG_ESP_WIFI_PASSWORD
+QueueHandle_t filaDeInterrupcao;
 
-// class Main final
-// {
-// private:
-// public:
-//     void run(void);
-//     void setup(void);
-// 	void testServer(void);
-//     void TrataClienteTCP(int socketCliente);
+static void IRAM_ATTR gpio_isr_handler(void *args)
+{
+  int pino = (int)args;
+  xQueueSendFromISR(filaDeInterrupcao, &pino, NULL);
+}
 
-//     WIFI::Wifi::state_e wifiState { WIFI::Wifi::state_e::NOT_INITIALIZED };
-//     WIFI::Wifi Wifi;
-// };
+void encoder( void * params ) {
 
-// Main App;
+    gpio_num_t pino;
+    int esquerda = 0;
+    int direita = 0;
 
-// void Main::run(void)
-// {
-//     wifiState = Wifi.GetState();
+    int oldAState = gpio_get_level(GPIO_NUM_34);
+    int oldBState = gpio_get_level(GPIO_NUM_35);
 
-//     switch (wifiState)
-//     {
-//     case WIFI::Wifi::state_e::READY_TO_CONNECT:
-//         std::cout << "Wifi Status: READY_TO_CONNECT\n";
-//         Wifi.Begin();
-//         break;
-//     case WIFI::Wifi::state_e::DISCONNECTED:
-//         std::cout << "Wifi Status: DISCONNECTED\n";
-//         Wifi.Begin();
-//         break;
-//     case WIFI::Wifi::state_e::CONNECTING:
-//         std::cout << "Wifi Status: CONNECTING\n";
-//         break;
-//     case WIFI::Wifi::state_e::WAITING_FOR_IP:
-//         std::cout << "Wifi Status: WAITING_FOR_IP\n";
-//         break;
-//     case WIFI::Wifi::state_e::ERROR:
-//         std::cout << "Wifi Status: ERROR\n";
-//         break;
-//     case WIFI::Wifi::state_e::CONNECTED:
-//         std::cout << "Wifi Status: CONNECTED\n";
-// 		testServer();
-//         break;
-//     case WIFI::Wifi::state_e::NOT_INITIALIZED:
-//         std::cout << "Wifi Status: NOT_INITIALIZED\n";
-//         break;
-//     case WIFI::Wifi::state_e::INITIALIZED:
-//         std::cout << "Wifi Status: INITIALIZED\n";
-//         break;
-//     }
-// }
+    while( 1 )
+    {   
+        if(xQueueReceive(filaDeInterrupcao, &pino, portMAX_DELAY))
+        {
+            int newAState = gpio_get_level(GPIO_NUM_34);
+            int newBState = gpio_get_level(GPIO_NUM_35);
 
-// void Main::TrataClienteTCP(int socketCliente) {
-// 	char buffer[256];
-// 	int tamanhoRecebido;
+            // Determine the direction based on the transition of the encoder states
+            if (oldAState == 0 && newAState == 1) {
+                if (oldBState == 0 && newBState == 0) {
+                direita++;  // Clockwise
+                printf("Girei direita: %d, esquerda: %d. OUTPUT: %d\n", direita, esquerda, pino);
+                } else if (oldBState == 1 && newBState == 1) {
+                esquerda++;  // Counterclockwise
+                printf("Girei direita: %d, esquerda: %d. OUTPUT: %d\n", direita, esquerda, pino);
+                }
+            }
 
-// 	if((tamanhoRecebido = recv(socketCliente, buffer, 256, 0)) < 0)
-// 		printf("Erro no recv()\n");
-//     else 
-//         printf("Valor lido: %s", buffer);
-// }
+            oldAState = newAState;
+            oldBState = newBState;
 
-// void Main::testServer(void) {
-// 	int servidorSocket;
-// 	int clienteSocket;
-// 	struct sockaddr_in servidorAddr;
-// 	struct sockaddr_in clienteAddr;
-// 	unsigned short servidorPorta = 16188;
-// 	unsigned int clienteLength;
+            gpio_isr_handler_remove(pino);
 
-// 	while(1) {
-// 		// Criar Socket
-// 		if((servidorSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-// 			printf("Erro no socket()\n");
-
-// 		// Construir struct sockaddr_in
-// 		memset(&servidorAddr, 0, sizeof(servidorAddr)); // Zerando a estrutura de dados
-// 		servidorAddr.sin_family = AF_INET;
-// 		servidorAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-// 		servidorAddr.sin_port = htons(servidorPorta);
-
-// 	    // Bind
-// 	    if(bind(servidorSocket, (struct sockaddr *) &servidorAddr, sizeof(servidorAddr)) < 0)
-// 		printf("Falha no Bind\n");
-
-// 	    // Listen
-// 	    if(listen(servidorSocket, 10) < 0)
-// 		printf("Falha no Listen\n");	
-
-//         while(1) {
-//             clienteLength = sizeof(clienteAddr);
-//             if((clienteSocket = accept(servidorSocket, 
-//                                     (struct sockaddr *) &clienteAddr, 
-//                                     &clienteLength)) < 0)
-//                 printf("Falha no Accept\n");
-            
-//             printf("Conexão do Cliente %s\n", inet_ntoa(clienteAddr.sin_addr));
-            
-//             TrataClienteTCP(clienteSocket);
-//             close(clienteSocket);
-//         }
-
-// 		close(servidorSocket);
-
-//         ESP_LOGI( "TCP", "Fechando socket de conexao!");
-//         vTaskDelay(pdMS_TO_TICKS(10000));
-// 	}
-
-
-// }
-
-// void Main::setup(void)
-// {
-//     esp_event_loop_create_default();
-//     nvs_flash_init();
-
-//     Wifi.SetCredentials(WIFI_SSID, WIFI_PASS);
-//     Wifi.Init();
-// }
+            // Habilitar novamente a interrupção
+            gpio_isr_handler_add(pino, gpio_isr_handler, (void *) pino);
+        }
+    }
+}
 
 extern "C" void app_main(void)
 {
-    // App.setup();
-    GPS::Gps6mv2 testeGPS;
-    while (true)
-    {
-        ESP_LOGI( "TAG", "li denovo");
-        testeGPS.receiveData();
-        // testeGPS.sendData();
-    }
+    ESP_ERROR_CHECK(gpio_reset_pin(GPIO_NUM_34));
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_34, GPIO_MODE_INPUT));
+    ESP_ERROR_CHECK(gpio_pullup_dis(GPIO_NUM_34));
+    ESP_ERROR_CHECK(gpio_pulldown_en(GPIO_NUM_34));
+
+    ESP_ERROR_CHECK(gpio_reset_pin(GPIO_NUM_35));
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_35, GPIO_MODE_INPUT));
+    ESP_ERROR_CHECK(gpio_pullup_dis(GPIO_NUM_35));
+    ESP_ERROR_CHECK(gpio_pulldown_en(GPIO_NUM_35));
+
+  // Configura pino para interrupção
+    ESP_ERROR_CHECK( gpio_set_intr_type(GPIO_NUM_34, GPIO_INTR_ANYEDGE ) );
+    ESP_ERROR_CHECK( gpio_set_intr_type(GPIO_NUM_35, GPIO_INTR_ANYEDGE) );
+
+    //GPS::Gps6mv2 testeGPS;
+    // xTaskCreate( &encoder, "Encoder", 4096, NULL, 1, NULL);   
+    xTaskCreate( &encoder, "Encoder", 4096, NULL, 1, NULL );
+    filaDeInterrupcao = xQueueCreate(20, sizeof(int));
+
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(GPIO_NUM_34, gpio_isr_handler, (void *) GPIO_NUM_34);
+    gpio_isr_handler_add(GPIO_NUM_35, gpio_isr_handler, (void *) GPIO_NUM_35);
+
+    StepMotor motor;
+    xTaskCreate( &motor.testOutput, "Motor de passo", 4096 ,NULL , 1, NULL );
 }
