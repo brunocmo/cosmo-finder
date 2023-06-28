@@ -3,19 +3,18 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <algorithm>
 
-static const char* tag = "StepMotor";
-int step = 0;
-gptimer_handle_t gptimer;
-gptimer_alarm_config_t alarm_config;
+bool stop;
 
-bool IRAM_ATTR example_timer_on_alarm_cb_v1(gptimer_handle_t timer, const gptimer_alarm_event_data_t* edata, void* user_data);
+StepMotor::StepMotor() :
+    m_movementList(),
+    m_XAxis(),
+    m_YAxis(),
+    m_stopNow( false )
 
-
-StepMotor::StepMotor()
 {
-    this->init();
-    this->gptimer_init();
+    init();
 }
 
 void StepMotor::setupPin( gpio_num_t pinSet )
@@ -28,128 +27,130 @@ void StepMotor::setupPin( gpio_num_t pinSet )
 
 void StepMotor::init()
 {
-    // X Axis Step and Dir
-    setupPin( GPIO_NUM_12 );
-    setupPin( GPIO_NUM_14 );
-    // Y Axis Step and Dir
-    setupPin( GPIO_NUM_27 );
-    setupPin( GPIO_NUM_26 );
+    m_XAxis.m_stepGpio = static_cast<gpio_num_t> (X_STEP);
+    m_XAxis.m_dirGpio = static_cast<gpio_num_t> (X_DIR);
+    m_XAxis.m_log += "X";
+
+    m_YAxis.m_stepGpio = static_cast<gpio_num_t> (Y_STEP);
+    m_YAxis.m_dirGpio = static_cast<gpio_num_t> (Y_DIR);
+    m_YAxis.m_log += "Y";
+
+    setupPin( m_XAxis.m_stepGpio );
+    setupPin( m_XAxis.m_dirGpio );
+    setupPin( m_YAxis.m_stepGpio );
+    setupPin( m_YAxis.m_dirGpio );
 }
 
-void StepMotor::testOutput( void * params )
+void StepMotor::Run( void* pTaskInstance )
 {
-    int direcaoX = 1;
-    int direcaoY = 0;
-
-    printf("Um lado e depois \n");
-    gpio_set_level( GPIO_NUM_14, direcaoX );
-    gpio_set_level( GPIO_NUM_26, direcaoY );
+    StepMotor* pTask = (StepMotor* ) pTaskInstance;
 
     while(1)
     {
+        if( !pTask->m_movementList.empty() )
+        {
+            for( auto movementIterator = pTask->m_movementList.begin(); movementIterator != pTask->m_movementList.end(); ++movementIterator )
+            {
+                pTask->m_XAxis = std::get<0>( *movementIterator );
+                pTask->m_YAxis = std::get<1>( *movementIterator );
 
-        gptimer_stop(gptimer);
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        gptimer_set_alarm_action(gptimer, &alarm_config);
-        gptimer_start(gptimer);
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+                ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "Moving %llu steps", pTask->m_XAxis.m_steps );
+                gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
 
-        // auto start = std::chrono::high_resolution_clock::now();
-        // for(int x = 0; x < 1000 ; ++x)
-        // {
-        //     gpio_set_level( GPIO_NUM_12, 1 );
-        //     gpio_set_level( GPIO_NUM_27, 0 );
-        //     std::this_thread::sleep_for( std::chrono::microseconds( 700 ));
-        //     gpio_set_level( GPIO_NUM_12, 0 );
-        //     gpio_set_level( GPIO_NUM_27, 1 );            
-        //     std::this_thread::sleep_for( std::chrono::microseconds( 700 ));
-        // }
-        // auto end = std::chrono::high_resolution_clock::now();
+                ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "Moving %llu steps", pTask->m_YAxis.m_steps );
+                gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
 
-        // // Calculate the duration of the loop in milliseconds
-        // double duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                std::thread stepMotorMovement_X( StepMotor::slewing, pTask->m_XAxis, pTask->m_stopNow );
+                std::thread stepMotorMovement_Y( StepMotor::slewing, pTask->m_YAxis, pTask->m_stopNow );
 
-        // // Print the execution time
-        // std::cout << "Loop execution time: " << duration << " milliseconds" << std::endl;
+                stepMotorMovement_X.join();
+                stepMotorMovement_Y.join();
 
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+                if( pTask->m_stopNow )
+                {
+                    pTask->m_movementList.clear();
+                    pTask->m_stopNow = false;
+                    break;
+                }
 
-        // printf("Outra lado e depois\n");
+                std::cout << pTask->m_movementList.size() << '\n';
 
-        // direcaoX = 0;
-        // direcaoY = 1;
+                for( auto teste3 : pTask->m_movementList )
+                {
+                    std::cout << "lol " << std::get<0>( teste3 ).m_steps << '\n';
+                    std::cout << "lol 2" << std::get<1>( teste3 ).m_steps << '\n';
+                }
 
-        // gpio_set_level( GPIO_NUM_14, direcaoX );
-        // gpio_set_level( GPIO_NUM_26, direcaoY );
-        // for(int x = 0; x < 1000 ; ++x)
-        // {
-        //     gpio_set_level( GPIO_NUM_12, 1 );
-        //     gpio_set_level( GPIO_NUM_27, 0 );
-        //     vTaskDelay(5 / portTICK_PERIOD_MS);
-        //     gpio_set_level( GPIO_NUM_12, 0 );
-        //     gpio_set_level( GPIO_NUM_27, 1 );
-        //     vTaskDelay(5 / portTICK_PERIOD_MS);
-        // }
+                movementIterator = pTask->m_movementList.begin();
 
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+                movementIterator = pTask->m_movementList.erase( movementIterator );
+                --movementIterator;
 
-        // if (counter % 2 == 0) {
-        // gptimer_stop(gptimer);
-        // gptimer_set_alarm_action(gptimer, &alarm_config2);
-        // gptimer_start(gptimer);
-        // } else {
-        //     gptimer_stop(gptimer);
-        //     gptimer_set_alarm_action(gptimer, &alarm_config1);
-        //     gptimer_start(gptimer);
-        // }
+
+
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+        }
+
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
-void StepMotor::gptimer_init()
+void StepMotor::slewing( motorPasso axis, bool stop )
 {
-    QueueHandle_t queue = xQueueCreate(10, sizeof(example_queue_element_t));
-    if (!queue) {
-        ESP_LOGE(tag, "Creating queue failed");
-        return;
+    while( axis.m_steps-- && !stop )
+    {
+        gpio_set_level( axis.m_stepGpio, 1 );
+        std::this_thread::sleep_for( std::chrono::microseconds( axis.m_speed ));
+        gpio_set_level( axis.m_stepGpio, 0 );
+        std::this_thread::sleep_for( std::chrono::microseconds( axis.m_speed ));
     }
-
-    ESP_LOGI(tag, "Create timer handle");
-    gptimer                       = NULL;
-    gptimer_config_t timer_config = {
-        .clk_src       = GPTIMER_CLK_SRC_DEFAULT,
-        .direction     = GPTIMER_COUNT_UP,
-        .resolution_hz = 10000, // 1MHz, 1 tick=1us
-    };
-    ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &gptimer));
-
-    gptimer_event_callbacks_t cbs = {
-        .on_alarm = example_timer_on_alarm_cb_v1,
-    };
-    // ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, queue));
-    ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, this));
-
-    ESP_LOGI(tag, "Enable timer");
-    ESP_ERROR_CHECK(gptimer_enable(gptimer));
-
-    ESP_LOGI(tag, "Start timer, stop it at alarm event");
-    alarm_config.reload_count               = 0;
-    alarm_config.alarm_count                = 6;
-    alarm_config.flags.auto_reload_on_alarm = true;
-
-    ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
-    ESP_ERROR_CHECK(gptimer_start(gptimer));
 }
 
-bool IRAM_ATTR example_timer_on_alarm_cb_v1(gptimer_handle_t timer, const gptimer_alarm_event_data_t* edata, void* user_data) {
-    BaseType_t high_task_awoken = pdFALSE;
-    // stop timer immediately
-    // gptimer_stop(timer);
-    // Retrieve count value and send to queue
-    // motor->step();;
-    // ESP_LOGI("TIMER", "step state %d", motor->step_state);
-    step = !step;
-    gpio_set_level(GPIO_NUM_12, step);
+void StepMotor::Movement( std::uint8_t XDirection, 
+                          std::uint64_t XSteps,
+                          std::uint8_t YDirection, 
+                          std::uint64_t YSteps )
+{
 
-    // return whether we need to yield at the end of ISR
-    return (high_task_awoken == pdTRUE);
+    motorPasso XAxis { XDirection, XSteps, 0, m_XAxis.m_stepGpio, m_XAxis.m_dirGpio, m_XAxis.m_log };
+    motorPasso YAxis { YDirection, YSteps, 0, m_YAxis.m_stepGpio, m_YAxis.m_dirGpio, m_YAxis.m_log };
+
+    std::uint64_t greaterValue = std::max( XSteps, YSteps );
+    std::uint64_t lesserValue = std::min( XSteps, YSteps );
+
+    std::uint64_t lessesSpeed{ 0 };
+
+    if( lesserValue != 0 )
+    {
+        lessesSpeed = greaterValue/lesserValue * MAX_SPEED;
+    }
+
+    ESP_LOGI( "Teste", "Moving %llu steps", lessesSpeed );
+
+    if( greaterValue == XSteps )
+    {
+        XAxis.m_speed = MAX_SPEED;
+        YAxis.m_speed = lessesSpeed;
+    }
+    else
+    {
+        YAxis.m_speed = MAX_SPEED;
+        XAxis.m_speed = lessesSpeed;       
+    }
+
+    m_movementList.push_back( { XAxis, YAxis } );
+}
+
+void StepMotor::Park()
+{
+    // TODO - Need another sensor ( GPIO INPUT ), to set park. Define which
+    //        clockwise and speed we neet to reach it, and thread for boths
+    //        axis cases.
+}
+
+void StepMotor::FullStop()
+{
+   ESP_LOGI( "STEPMOTOR", "FULL STOP" );
+   m_stopNow = true;
 }
