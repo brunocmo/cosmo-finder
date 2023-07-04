@@ -27,13 +27,27 @@ public:
     enum
     {
         MIN_SPEED = 500000,
-        MAX_SPEED = 650
+        MAX_SPEED = 1300
     };
 
     enum
     {
         CLOCKWISE,
         COUNTERCLOCKWISE
+    };
+
+    enum EnablePin
+    {
+        ENABLE_PIN = GPIO_NUM_25,
+    };
+
+    enum ParkValues
+    {
+        AZ_FRONT = GPIO_NUM_33,
+        AZ_BACK = GPIO_NUM_32,
+        ALT = GPIO_NUM_35,
+        ANGLE_90 = 27300,
+        ANGLE_180 = 54600
     };
 
     enum AxisValues
@@ -54,17 +68,19 @@ public:
                    std::uint64_t YSteps );
     void Park();
     void FullStop();
+
     std::vector<std::tuple<motorPasso, motorPasso>> m_movementList;
 
 private:
 
 
     void init();
-    void setupPin( gpio_num_t pinSet );
-    static void slewing( motorPasso axis, bool stop );
+    void setupPinOut( gpio_num_t pinSet );
+    void setupPinIn( gpio_num_t pinSet, bool isPullUp );
+    static void slewing( motorPasso axis );
+    static void parkSlewing( motorPasso axis );
 
     motorPasso m_XAxis;
     motorPasso m_YAxis;
-    bool m_stopNow;
 
 };  
