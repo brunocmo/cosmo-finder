@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <arpa/inet.h>
 #include <cstdlib>
 #include <iostream>
@@ -21,15 +21,15 @@ public:
     Comms();
     ~Comms() = default;
     
-    void init();
+    void Init();
 
-    void RunTCPServer();
+    static void RunTCPServer( void* pTaskInstance );
 
-    bool sendCommand( std::string message );
+    void sendCommand( std::string message );
     std::string receiveCommand();
 
-    unsigned char receiveBuffer[255];
-    std::string sendBuffer;    
+    std::string receiveBuffer;
+    std::string sendBuffer; 
 
 	struct sockaddr_in servidorAddr;
 	struct sockaddr_in clienteAddr;

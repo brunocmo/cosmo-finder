@@ -61,6 +61,7 @@ public:
     StepMotor();
     ~StepMotor() = default;
 
+    void Init();
     static void Run( void* pTaskInstance );
     void Movement( std::uint8_t XDirection, 
                    std::uint64_t XSteps,
@@ -74,7 +75,7 @@ public:
 private:
 
 
-    void init();
+
     void setupPinOut( gpio_num_t pinSet );
     void setupPinIn( gpio_num_t pinSet, bool isPullUp );
     static void slewing( motorPasso axis );

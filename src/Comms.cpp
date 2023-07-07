@@ -4,11 +4,14 @@ int hasResponse = 1;
 
 Comms::Comms()
 { 
+}
+
+void Comms::Init()
+{
     sockedDescriptior = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(sockedDescriptior == -1)
     {
         perror("Falha na criacao do socket");
-        exit(EXIT_FAILURE);
     }
 
     // Adicionar propriedades do servidor
@@ -24,7 +27,6 @@ Comms::Comms()
     if( rc == -1 ){
         perror("Falha no bind");
         close(sockedDescriptior);
-        exit(EXIT_FAILURE);
     }
 
     // Anuncia para aceitar conexões
@@ -32,7 +34,6 @@ Comms::Comms()
     if ( ls == -1 ) {
         perror("Falha no listen!");
         close(sockedDescriptior);
-        exit(EXIT_FAILURE);
     }
 
     clienteLength = sizeof(struct sockaddr_in);
@@ -40,41 +41,43 @@ Comms::Comms()
     connectionDescriptor  = accept(sockedDescriptior, (struct sockaddr *)&clienteAddr, &clienteLength);
 }
 
-void Comms::init()
+void Comms::RunTCPServer( void* pTaskInstance )
 {
-}
+    Comms* pTask = (Comms* ) pTaskInstance;
 
-void Comms::RunTCPServer()
-{
     while(1) {
         // Block chamador até a requisição de conexão chega
-        if( connectionDescriptor == -1) {
+        if( pTask->connectionDescriptor == -1) {
             perror("Falha no accept!");
         } else {
+            unsigned char valorRecebido[256];
 
-            for(int i{0}; i<10; i++) {
-                unsigned char valorRecebido = 0;
-
-                int n = recv(connectionDescriptor, &valorRecebido, sizeof(valorRecebido), 0);
-                if( n == -1 ) {
-                    std::cout << "Erro no recebimento da mensagem!" << '\n';
-                } 
-                else 
+            int n = recv(pTask->connectionDescriptor, valorRecebido, 256, 0);
+            
+            if( n == -1 )
+            {
+                std::cout << "Erro no recebimento da mensagem!" << '\n';
+            } 
+            else 
+            {
+                pTask->receiveBuffer = std::string( (char* )valorRecebido );
+                while( hasResponse )
                 {
-                    receiveBuffer[i] = valorRecebido;
-                    while( hasResponse )
-                    {
-                        vTaskDelay( 300 / portTICK_PERIOD_MS );
-                    }
-                    hasResponse = 1;
+                    vTaskDelay( 300 / portTICK_PERIOD_MS );
                 }
+                hasResponse = 1;
             }
 
-            if( !sendBuffer.empty()) {
 
-                sendCommand(sendBuffer);
+            if( !pTask->sendBuffer.empty() )
+            {
+                int n = send( pTask->connectionDescriptor, pTask->sendBuffer.c_str(), pTask->sendBuffer.size(), 0 );
+
+                if( n == -1 ) {
+                    std::cout << "Erro ao enviar msg" << '\n';
+                }
             
-                sendBuffer.clear();
+                pTask->sendBuffer.clear();
             }
 
 
@@ -85,17 +88,10 @@ void Comms::RunTCPServer()
 
 std::string Comms::receiveCommand()
 {
-    return reinterpret_cast<char*>( receiveBuffer );
+    return receiveBuffer;
 }
 
-bool Comms::sendCommand( std::string message )
+void Comms::sendCommand( std::string message )
 {
-    int n = send( connectionDescriptor, message.c_str(), message.size(), 0 );
-
-    if( n == -1 ) {
-        std::cout << "Erro ao enviar msg" << '\n';
-        return EXIT_FAILURE;
-    }
-
-    return EXIT_SUCCESS;
+    sendBuffer = message;
 }

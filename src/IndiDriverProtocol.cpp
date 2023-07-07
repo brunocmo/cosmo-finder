@@ -26,15 +26,12 @@ void IndiDriverProtocol::translateMessage( std::string message )
     switch ( m_commandId )
     {
     case GoTo:
-        m_azimuthSteps = getFloatValues( data.substr( 0, sizeof( float ) ) );
-        m_altitudeSteps = getFloatValues( data.substr( 5, sizeof( float ) ) );
+    case Track:
+        m_azimuthSteps = getIntValues( data.substr( 0, sizeof( int ) ) );
+        m_altitudeSteps = getIntValues( data.substr( 5, sizeof( int ) ) );
         break;
     case Park:
         m_needToPark = true;
-        break;
-    case Track:
-        m_azimuthSteps = getFloatValues( data.substr( 0, sizeof( float ) ) );
-        m_altitudeSteps = getFloatValues( data.substr( 5, sizeof( float ) ) );
         break;
     case GetLocation:
         m_latitude = getDoubleValues( data.substr( 0, sizeof( double ) ) );
@@ -48,6 +45,28 @@ void IndiDriverProtocol::translateMessage( std::string message )
     default:
         break;
     }
+}
+
+std::uint8_t IndiDriverProtocol::GetCommand()
+{
+    return m_commandId;
+}
+
+int IndiDriverProtocol::GetAzimuthSteps()
+{
+    return m_azimuthSteps;
+}
+
+int IndiDriverProtocol::GetAltitudeSteps()
+{
+    return m_altitudeSteps;
+}
+
+int IndiDriverProtocol::getIntValues( std::string toTransform )
+{
+    int convertedValue;
+    memcpy( &convertedValue, toTransform.c_str(), sizeof( int ) );
+    return convertedValue;
 }
 
 float IndiDriverProtocol::getFloatValues( std::string toTransform )

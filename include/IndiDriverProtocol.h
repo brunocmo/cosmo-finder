@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <cmath>
 
 
 class IndiDriverProtocol
@@ -20,18 +21,21 @@ public:
         Stop = 0x05
     };
 
-    
+    std::uint8_t GetCommand();
+    int GetAzimuthSteps();
+    int GetAltitudeSteps();
 
-private:
     void translateMessage( std::string message );
 
+private:
+    int getIntValues( std::string toTransform );
     float getFloatValues( std::string toTransform );
     double getDoubleValues( std::string toTransform );
 
     std::uint8_t m_commandId;
 
-    float m_azimuthSteps;
-    float m_altitudeSteps;
+    int m_azimuthSteps;
+    int m_altitudeSteps;
 
     double m_latitude;
     double m_longitude;

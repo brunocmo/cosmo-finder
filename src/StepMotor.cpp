@@ -13,7 +13,6 @@ StepMotor::StepMotor() :
     m_XAxis(),
     m_YAxis()
 {
-    init();
 }
 
 void StepMotor::setupPinOut( gpio_num_t pinSet )
@@ -41,7 +40,7 @@ void StepMotor::setupPinIn( gpio_num_t pinSet, bool isPullUp )
     }
 }
 
-void StepMotor::init()
+void StepMotor::Init()
 {
     m_XAxis.m_stepGpio = static_cast<gpio_num_t> (X_STEP);
     m_XAxis.m_dirGpio = static_cast<gpio_num_t> (X_DIR);
