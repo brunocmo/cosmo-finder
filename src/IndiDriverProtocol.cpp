@@ -16,27 +16,26 @@ IndiDriverProtocol::IndiDriverProtocol() :
 
 }
 
-void IndiDriverProtocol::translateMessage( std::string message )
+void IndiDriverProtocol::translateMessage( char* message )
 {
     std::regex wordRegex;
     std::smatch matchRegex;
     m_commandId = static_cast< std::uint8_t >( message[0] );
 
-    std::string data = message.substr( 1, message.size() -1 );
     switch ( m_commandId )
     {
     case GoTo:
     case Track:
-        m_azimuthSteps = getIntValues( data.substr( 0, sizeof( int ) ) );
-        m_altitudeSteps = getIntValues( data.substr( 5, sizeof( int ) ) );
+        m_azimuthSteps = getIntValues( &message[1] );
+        m_altitudeSteps = getIntValues( &message[6] );
         break;
     case Park:
         m_needToPark = true;
         break;
     case GetLocation:
-        m_latitude = getDoubleValues( data.substr( 0, sizeof( double ) ) );
-        m_longitude = getDoubleValues( data.substr( 8, sizeof( double ) ) );
-        m_elevation = getFloatValues( data.substr( 16, sizeof( float ) ) );
+        m_latitude = getDoubleValues( &message[1] );
+        m_longitude = getDoubleValues( &message[10] );
+        m_elevation = getFloatValues( &message[19] );
         break;
     case Stop:
         m_needToStop = true;
@@ -62,24 +61,24 @@ int IndiDriverProtocol::GetAltitudeSteps()
     return m_altitudeSteps;
 }
 
-int IndiDriverProtocol::getIntValues( std::string toTransform )
+int IndiDriverProtocol::getIntValues( char* toTransform )
 {
     int convertedValue;
-    memcpy( &convertedValue, toTransform.c_str(), sizeof( int ) );
+    memcpy( &convertedValue, toTransform, sizeof( int ) );
     return convertedValue;
 }
 
-float IndiDriverProtocol::getFloatValues( std::string toTransform )
+float IndiDriverProtocol::getFloatValues( char* toTransform )
 {
     float convertedValue;
-    memcpy( &convertedValue, toTransform.c_str(), sizeof( float ) );
+    memcpy( &convertedValue, toTransform, sizeof( float ) );
     return convertedValue;
 }
 
-double IndiDriverProtocol::getDoubleValues( std::string toTransform )
+double IndiDriverProtocol::getDoubleValues( char* toTransform )
 {
     double convertedValue;
-    memcpy( &convertedValue, toTransform.c_str(), sizeof( double ) );
+    memcpy( &convertedValue, toTransform, sizeof( double ) );
     return convertedValue;
 }
 

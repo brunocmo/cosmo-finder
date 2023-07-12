@@ -10,8 +10,8 @@ Controller::Controller() :
 
 void Controller::Init()
 {
-    m_communication.Init();
     m_motorPasso.Init();
+    m_communication.Init();
 }
 
 void Controller::Run()
@@ -50,10 +50,14 @@ void Controller::machineState()
             break;
         case IndiDriverProtocol::Stop:
             m_motorPasso.FullStop();
+            m_communication.sendCommand( "OK" );
             break;
         default:
             break;
         }
+
+        m_communication.sizeOfBuffer = 0;
+        memset(&m_communication.receiveBuffer, 0, 255);
 
         vTaskDelay( 300 / portTICK_PERIOD_MS );
     }

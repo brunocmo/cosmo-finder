@@ -27,7 +27,7 @@ public:
     enum
     {
         MIN_SPEED = 500000,
-        MAX_SPEED = 1300
+        MAX_SPEED = 1000
     };
 
     enum

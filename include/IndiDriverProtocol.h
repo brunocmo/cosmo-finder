@@ -25,12 +25,12 @@ public:
     int GetAzimuthSteps();
     int GetAltitudeSteps();
 
-    void translateMessage( std::string message );
+    void translateMessage( char* message );
 
 private:
-    int getIntValues( std::string toTransform );
-    float getFloatValues( std::string toTransform );
-    double getDoubleValues( std::string toTransform );
+    int getIntValues( char* toTransform );
+    float getFloatValues( char* toTransform );
+    double getDoubleValues( char* toTransform );
 
     std::uint8_t m_commandId;
 

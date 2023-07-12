@@ -26,10 +26,13 @@ public:
     static void RunTCPServer( void* pTaskInstance );
 
     void sendCommand( std::string message );
-    std::string receiveCommand();
+    char* receiveCommand();
 
-    std::string receiveBuffer;
+    char receiveBuffer[255];
+    int sizeOfBuffer;
     std::string sendBuffer; 
+
+    char tempReceiveBuffer[255];
 
 	struct sockaddr_in servidorAddr;
 	struct sockaddr_in clienteAddr;
