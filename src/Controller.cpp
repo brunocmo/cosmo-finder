@@ -35,8 +35,11 @@ void Controller::machineState()
             stepDirectionAltitude = ( m_protocol.GetAltitudeSteps() ) >= 0 ? StepMotor::CLOCKWISE : StepMotor::COUNTERCLOCKWISE;
             stepDirectionAzimuth = ( m_protocol.GetAzimuthSteps() ) >= 0 ? StepMotor::CLOCKWISE : StepMotor::COUNTERCLOCKWISE;
 
-            m_motorPasso.Movement( stepDirectionAltitude, std::abs( m_protocol.GetAltitudeSteps() ),
-                            stepDirectionAzimuth, std::abs( m_protocol.GetAzimuthSteps() ) );
+            m_motorPasso.Movement( stepDirectionAzimuth, std::abs( m_protocol.GetAzimuthSteps() ),
+                                     stepDirectionAltitude, std::abs( m_protocol.GetAltitudeSteps() ) );
+
+            std::cout << stepDirectionAltitude << " , " << m_protocol.GetAltitudeSteps() << '\n';
+            std::cout << stepDirectionAzimuth << " , " << m_protocol.GetAzimuthSteps() << '\n';
 
             m_communication.sendCommand( "OK" );
             return;

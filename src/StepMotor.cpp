@@ -148,24 +148,34 @@ void StepMotor::slewing( motorPasso axis )
 
 void StepMotor::parkSlewing( motorPasso axis )
 {
+    int tries = 0;
     bool changedOnce = false;
     while( axis.m_steps )
     {
         if( axis.m_dirGpio == static_cast<gpio_num_t> (X_DIR) )
         {
-            if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_FRONT ) ) )
+            if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_BACK ) ) )
             {
-                ESP_LOGI( "PARK", "STOP AZ_FRONT" );
-                break;
+                if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_FRONT ) ) )
+                {
+                    ESP_LOGI( "PARK", "STOP FRONT" );
+                    break;
+                }
             }
 
-            if( !changedOnce && !gpio_get_level( static_cast<gpio_num_t> ( AZ_BACK ) ) )
+            if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_FRONT ) ) && !changedOnce )
             {
+                if( tries > 5 ) 
+                {
+                    axis.m_direction = COUNTERCLOCKWISE;
+                    axis.m_steps = ANGLE_180;
+                    gpio_set_level( axis.m_dirGpio, axis.m_direction );
+                    ESP_LOGI( "PARK", "STOP BACK" );
+                    changedOnce = true;
+                }
                 ESP_LOGI( "PARK", "STOP AZ_BACK" );
-                axis.m_direction = COUNTERCLOCKWISE;
-                axis.m_steps = ANGLE_180 + 1;
-                gpio_set_level( axis.m_dirGpio, axis.m_direction );
-                changedOnce = true;
+
+                tries++;
             }
         }
         else

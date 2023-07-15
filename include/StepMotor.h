@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include "driver/gptimer.h"
 
 class StepMotor
 {
@@ -46,8 +45,8 @@ public:
         AZ_FRONT = GPIO_NUM_33,
         AZ_BACK = GPIO_NUM_32,
         ALT = GPIO_NUM_35,
-        ANGLE_90 = 27300,
-        ANGLE_180 = 54600
+        ANGLE_90 = 30300,
+        ANGLE_180 = 60600
     };
 
     enum AxisValues
