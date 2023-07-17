@@ -75,10 +75,10 @@ void StepMotor::Run( void* pTaskInstance )
                 pTask->m_XAxis = std::get<0>( *movementIterator );
                 pTask->m_YAxis = std::get<1>( *movementIterator );
 
-                ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "Moving %llu steps", pTask->m_XAxis.m_steps );
+                ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "Moving %llu steps, direction %s", pTask->m_XAxis.m_steps, pTask->stepDirection( pTask->m_XAxis.m_direction ).c_str() );
                 gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
 
-                ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "Moving %llu steps", pTask->m_YAxis.m_steps );
+                ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "Moving %llu steps, direction %s", pTask->m_YAxis.m_steps, pTask->stepDirection( pTask->m_YAxis.m_direction ).c_str() );
                 gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
 
                 gpio_set_level( static_cast<gpio_num_t>( ENABLE_PIN ), 0 );
@@ -219,7 +219,7 @@ void StepMotor::Movement( std::uint8_t XDirection,
         lessesSpeed = greaterValue/lesserValue * MAX_SPEED;
     }
 
-    ESP_LOGI( "Teste", "Moving %llu steps", lessesSpeed );
+    //ESP_LOGI( "Teste", "Moving %llu steps", lessesSpeed );
 
     if( greaterValue == XSteps )
     {
@@ -233,6 +233,18 @@ void StepMotor::Movement( std::uint8_t XDirection,
     }
 
     m_movementList.push_back( { XAxis, YAxis } );
+}
+
+std::string StepMotor::stepDirection( std::uint8_t direction )
+{
+    if( direction == CLOCKWISE )
+    {
+        return std::string("CLOCKWISE");
+    }
+    else
+    {
+        return std::string("COUNTERCLOCKWISE");
+    }
 }
 
 void StepMotor::Park()

@@ -80,6 +80,8 @@ private:
     static void slewing( motorPasso axis );
     static void parkSlewing( motorPasso axis );
 
+    std::string stepDirection( std::uint8_t direction );
+
     motorPasso m_XAxis;
     motorPasso m_YAxis;
 
