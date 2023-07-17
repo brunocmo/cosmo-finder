@@ -1,7 +1,11 @@
 #include "Wifi.h"
 
+
+
 namespace WIFI
 {
+    char myIp[28] = {0};
+
     // Statics
     char Wifi::_mac_addr_cstr[]{};
     std::mutex Wifi::_mutx{};
@@ -69,6 +73,9 @@ namespace WIFI
             case IP_EVENT_STA_GOT_IP:
             {
                 std::lock_guard<std::mutex> state_guard(_mutx);
+                ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+                sprintf( myIp, IPSTR, IP2STR(&event->ip_info.ip));
+                ESP_LOGI("TAG", "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
                 _state = state_e::CONNECTED;
                 break;
             }

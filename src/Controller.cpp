@@ -30,6 +30,16 @@ void Controller::machineState()
         {
         case IndiDriverProtocol::GoTo:
         case IndiDriverProtocol::Track:
+
+            if( m_protocol.GetCommand() == IndiDriverProtocol::GoTo )
+            {
+                printLCD( "Status:", "Slewing...");
+            }
+            else
+            {
+                printLCD( "Status:", "Tracking...");
+            }
+
             uint8_t stepDirectionAltitude;
             uint8_t stepDirectionAzimuth;
             stepDirectionAltitude = ( m_protocol.GetAltitudeSteps() ) >= 0 ? StepMotor::CLOCKWISE : StepMotor::COUNTERCLOCKWISE;
@@ -45,6 +55,7 @@ void Controller::machineState()
             return;
             break;
         case IndiDriverProtocol::Park:
+            printLCD( "Status:", "PARKING...");
             m_motorPasso.Park();
             m_communication.sendCommand( "OK" );
             break;
@@ -52,6 +63,7 @@ void Controller::machineState()
             // TODO
             break;
         case IndiDriverProtocol::Stop:
+            printLCD( "Status:", "FULL STOP");
             m_motorPasso.FullStop();
             m_communication.sendCommand( "OK" );
             break;
@@ -64,4 +76,13 @@ void Controller::machineState()
 
         vTaskDelay( 300 / portTICK_PERIOD_MS );
     }
+}
+
+void Controller::printLCD( char* upRow, char* downRow )
+{
+    LCD_home();
+    LCD_clearScreen();
+    LCD_writeStr(upRow);
+    LCD_setCursor(0, 1);
+    LCD_writeStr(downRow);
 }

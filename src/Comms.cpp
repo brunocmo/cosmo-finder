@@ -4,20 +4,15 @@ int hasResponse = 1;
 
 Comms::Comms()
 { 
-
-    std::cout << "INICIEI" << '\n';
 }
 
 void Comms::Init()
 {
-    std::cout << "DE VERDADE" << '\n';    
     sockedDescriptior = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(sockedDescriptior == -1)
     {
         std::cout << "FALHA NO SOCKET" << '\n';
     }
-
-    std::cout << "socket" << '\n';
 
     // Adicionar propriedades do servidor
     //memset(&servidorAddr, 0, sizeof(servidorAddr));
@@ -43,8 +38,6 @@ void Comms::Init()
         close(sockedDescriptior);
     }
 
-    std::cout << "listen" << '\n';
-
     clienteLength = sizeof(struct sockaddr_in);
 
     connectionDescriptor  = accept(sockedDescriptior, (struct sockaddr *)&clienteAddr, &clienteLength);
@@ -52,27 +45,25 @@ void Comms::Init()
     if( connectionDescriptor == -1) {
         std::cout << "FALHA NO ACCEPT" << '\n';
     }
-
-    std::cout << "INICEI BEM PAI" << '\n';
-
 }
 
 void Comms::RunTCPServer( void* pTaskInstance )
 {
     Comms* pTask = (Comms* ) pTaskInstance;
 
-    std::cout << "Rodando o servidor!!!" << '\n';
+    ESP_LOGI( "COMMS", "Server Running" );
 
     while(1) {
         // Block chamador até a requisição de conexão chega
         if( pTask->connectionDescriptor == -1) {
-            std::cout << "FALHA NO ACCEPT fechado" << '\n';
+            ESP_LOGI( "COMMS", "Client connection error, trying new connection..." );
             pTask->connectionDescriptor  = accept(pTask->sockedDescriptior, (struct sockaddr *)&pTask->clienteAddr, &pTask->clienteLength);
             if( pTask->connectionDescriptor == -1) {
-                std::cout << "FALHA NO ACCEPT" << '\n';
+                ESP_LOGI( "COMMS", "Something went wrong, restarting server..." );
                 close(pTask->sockedDescriptior);
+                pTask->Init();
             }
-            pTask->Init();
+
         }
         else 
         {
@@ -82,7 +73,8 @@ void Comms::RunTCPServer( void* pTaskInstance )
             
             if( n == -1 )
             {
-                std::cout << "Erro no recebimento da mensagem!" << '\n';
+                ESP_LOGI( "COMMS", "Client connection error, trying new connection..." );
+
                 pTask->connectionDescriptor  = accept(pTask->sockedDescriptior, (struct sockaddr *)&pTask->clienteAddr, &pTask->clienteLength);
                 if( pTask->connectionDescriptor == -1) {
                     std::cout << "FALHA NO ACCEPT" << '\n';
@@ -92,7 +84,7 @@ void Comms::RunTCPServer( void* pTaskInstance )
             else 
             {
                 pTask->sizeOfBuffer = n;
-                std::cout << "Recebi: " << n << " mensagens" << '\n';
+                //  std::cout << "Recebi: " << n << " mensagens" << '\n';
 
                 if( n == 0 ) continue;
 

@@ -76,18 +76,36 @@ void StepMotor::Run( void* pTaskInstance )
                 pTask->m_YAxis = std::get<1>( *movementIterator );
 
                 ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "Moving %llu steps, direction %s", pTask->m_XAxis.m_steps, pTask->stepDirection( pTask->m_XAxis.m_direction ).c_str() );
-                gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
-
                 ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "Moving %llu steps, direction %s", pTask->m_YAxis.m_steps, pTask->stepDirection( pTask->m_YAxis.m_direction ).c_str() );
-                gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
+
+                std::unique_ptr< std::thread > threadX{nullptr};
+                std::unique_ptr< std::thread > threadY{nullptr};
 
                 gpio_set_level( static_cast<gpio_num_t>( ENABLE_PIN ), 0 );
-                std::thread stepMotorMovement_X( StepMotor::slewing, pTask->m_XAxis );
-                std::thread stepMotorMovement_Y( StepMotor::slewing, pTask->m_YAxis );
+                if( pTask->m_XAxis.m_steps > 0 )
+                {
+                    gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
+                    ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "LEL" );
+                    threadX = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_XAxis );
+                }
 
-                stepMotorMovement_X.join();
-                stepMotorMovement_Y.join();
+                if( pTask->m_YAxis.m_steps > 0 )
+                {
+                    gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
+                    ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "LOL" );
+                    threadY = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_YAxis );
+                }
 
+                if( threadX )
+                {
+                    threadX.get()->join();
+                    threadX.reset(nullptr);
+                }
+                if( threadY )
+                {
+                    threadY.get()->join();
+                    threadY.reset(nullptr);
+                }
                 gpio_set_level( static_cast<gpio_num_t>( ENABLE_PIN ), 1 );
 
                 if( stop )

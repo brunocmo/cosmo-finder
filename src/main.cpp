@@ -5,6 +5,7 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 
+#include <driver/i2c.h>
 #include <esp_log.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,13 @@
 #include "Controller.h"
 
 #include "Wifi.h"
+#include "HD44780.h"
+
+#define LCD_ADDR 0x27
+#define SDA_PIN  21
+#define SCL_PIN  22
+#define LCD_COLS 16
+#define LCD_ROWS 2
 
 #define WIFI_SSID      CONFIG_ESP_WIFI_SSID
 #define WIFI_PASS      CONFIG_ESP_WIFI_PASSWORD
@@ -76,6 +84,21 @@ void runWifi( void* pTaskInstance )
 
 extern "C" void app_main(void)
 {
+    // Shutting down stepMotor drivers
+    ESP_ERROR_CHECK(gpio_reset_pin(GPIO_NUM_25));
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_25, GPIO_MODE_OUTPUT));
+    ESP_ERROR_CHECK(gpio_pulldown_dis(GPIO_NUM_25));
+    ESP_ERROR_CHECK(gpio_pullup_dis(GPIO_NUM_25));
+    gpio_set_level( GPIO_NUM_25, 1 );
+
+    LCD_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
+
+    LCD_home();
+    LCD_clearScreen();
+    LCD_writeStr("Starting");
+    LCD_setCursor(0, 1);
+    LCD_writeStr("Cosmo Finder...");
+
     setupWifi();
     xTaskCreate( &runWifi, "Run Wifi", 4096, NULL, tskIDLE_PRIORITY, NULL );
 
@@ -86,37 +109,24 @@ extern "C" void app_main(void)
 
     std::cout << "Wifi Status: CONNECTED\n";
 
-    // Comms m_communication;
-    // m_communication.Init();
+    LCD_home();
+    LCD_clearScreen();
+    LCD_writeStr("Connect to IP");
+    LCD_setCursor(0, 1);
+    LCD_writeStr(WIFI::myIp);
 
-    // vTaskDelay( 100 / portTICK_PERIOD_MS );
-
-    // xTaskCreate( &Comms::RunTCPServer, "Run TCP/IP Comms", 4096, &m_communication, tskIDLE_PRIORITY, NULL );
-
-
-    // char* teste1;
-
-    // while( 1 )
-    // {
-    //     std::cout << "##### SHOWll!!!" << '\n';
-    //     teste1 = m_communication.receiveCommand();
-    //     if( m_communication.sizeOfBuffer != 0 )
-    //     {
-    //         m_communication.sendCommand( "Ok\0" );
-    //         std::cout << "##Tamanho: " << std::dec << m_communication.sizeOfBuffer << '\n';
-    //         for( int i{0}; i<m_communication.sizeOfBuffer; i++)
-    //         {
-    //             std::cout << std::hex << (int)*(teste1+i) << " ";
-    //         }
-    //         std::cout << '\n';
-    //     }
-    //     vTaskDelay( 2000 / portTICK_PERIOD_MS );
-    // }
+    vTaskDelay( 5000 / portTICK_PERIOD_MS );
 
     Controller controller;
     controller.Init();
     controller.Run();
     
+    LCD_home();
+    LCD_clearScreen();
+    LCD_writeStr("Cosmo Finder");
+    LCD_setCursor(0, 1);
+    LCD_writeStr("Ready!");
+
     while( wifiState == WIFI::Wifi::state_e::CONNECTED )
     {
         controller.machineState();

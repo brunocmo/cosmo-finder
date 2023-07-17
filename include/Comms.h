@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <esp_log.h>
 
 class Comms
 {
