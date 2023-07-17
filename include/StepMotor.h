@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include "driver/gptimer.h"
 
 class StepMotor
 {
@@ -27,7 +26,7 @@ public:
     enum
     {
         MIN_SPEED = 500000,
-        MAX_SPEED = 1300
+        MAX_SPEED = 1000
     };
 
     enum
@@ -46,8 +45,8 @@ public:
         AZ_FRONT = GPIO_NUM_33,
         AZ_BACK = GPIO_NUM_32,
         ALT = GPIO_NUM_35,
-        ANGLE_90 = 27300,
-        ANGLE_180 = 54600
+        ANGLE_90 = 30300,
+        ANGLE_180 = 60600
     };
 
     enum AxisValues
@@ -61,6 +60,7 @@ public:
     StepMotor();
     ~StepMotor() = default;
 
+    void Init();
     static void Run( void* pTaskInstance );
     void Movement( std::uint8_t XDirection, 
                    std::uint64_t XSteps,
@@ -74,11 +74,13 @@ public:
 private:
 
 
-    void init();
+
     void setupPinOut( gpio_num_t pinSet );
     void setupPinIn( gpio_num_t pinSet, bool isPullUp );
     static void slewing( motorPasso axis );
     static void parkSlewing( motorPasso axis );
+
+    std::string stepDirection( std::uint8_t direction );
 
     motorPasso m_XAxis;
     motorPasso m_YAxis;

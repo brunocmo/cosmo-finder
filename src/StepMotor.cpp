@@ -13,7 +13,6 @@ StepMotor::StepMotor() :
     m_XAxis(),
     m_YAxis()
 {
-    init();
 }
 
 void StepMotor::setupPinOut( gpio_num_t pinSet )
@@ -41,7 +40,7 @@ void StepMotor::setupPinIn( gpio_num_t pinSet, bool isPullUp )
     }
 }
 
-void StepMotor::init()
+void StepMotor::Init()
 {
     m_XAxis.m_stepGpio = static_cast<gpio_num_t> (X_STEP);
     m_XAxis.m_dirGpio = static_cast<gpio_num_t> (X_DIR);
@@ -76,19 +75,37 @@ void StepMotor::Run( void* pTaskInstance )
                 pTask->m_XAxis = std::get<0>( *movementIterator );
                 pTask->m_YAxis = std::get<1>( *movementIterator );
 
-                ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "Moving %llu steps", pTask->m_XAxis.m_steps );
-                gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
+                ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "Moving %llu steps, direction %s", pTask->m_XAxis.m_steps, pTask->stepDirection( pTask->m_XAxis.m_direction ).c_str() );
+                ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "Moving %llu steps, direction %s", pTask->m_YAxis.m_steps, pTask->stepDirection( pTask->m_YAxis.m_direction ).c_str() );
 
-                ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "Moving %llu steps", pTask->m_YAxis.m_steps );
-                gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
+                std::unique_ptr< std::thread > threadX{nullptr};
+                std::unique_ptr< std::thread > threadY{nullptr};
 
                 gpio_set_level( static_cast<gpio_num_t>( ENABLE_PIN ), 0 );
-                std::thread stepMotorMovement_X( StepMotor::slewing, pTask->m_XAxis );
-                std::thread stepMotorMovement_Y( StepMotor::slewing, pTask->m_YAxis );
+                if( pTask->m_XAxis.m_steps > 0 )
+                {
+                    gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
+                    ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "LEL" );
+                    threadX = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_XAxis );
+                }
 
-                stepMotorMovement_X.join();
-                stepMotorMovement_Y.join();
+                if( pTask->m_YAxis.m_steps > 0 )
+                {
+                    gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
+                    ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "LOL" );
+                    threadY = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_YAxis );
+                }
 
+                if( threadX )
+                {
+                    threadX.get()->join();
+                    threadX.reset(nullptr);
+                }
+                if( threadY )
+                {
+                    threadY.get()->join();
+                    threadY.reset(nullptr);
+                }
                 gpio_set_level( static_cast<gpio_num_t>( ENABLE_PIN ), 1 );
 
                 if( stop )
@@ -149,24 +166,34 @@ void StepMotor::slewing( motorPasso axis )
 
 void StepMotor::parkSlewing( motorPasso axis )
 {
+    int tries = 0;
     bool changedOnce = false;
     while( axis.m_steps )
     {
         if( axis.m_dirGpio == static_cast<gpio_num_t> (X_DIR) )
         {
-            if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_FRONT ) ) )
+            if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_BACK ) ) )
             {
-                ESP_LOGI( "PARK", "STOP AZ_FRONT" );
-                break;
+                if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_FRONT ) ) )
+                {
+                    ESP_LOGI( "PARK", "STOP FRONT" );
+                    break;
+                }
             }
 
-            if( !changedOnce && !gpio_get_level( static_cast<gpio_num_t> ( AZ_BACK ) ) )
+            if( !gpio_get_level( static_cast<gpio_num_t> ( AZ_FRONT ) ) && !changedOnce )
             {
+                if( tries > 5 ) 
+                {
+                    axis.m_direction = COUNTERCLOCKWISE;
+                    axis.m_steps = ANGLE_180;
+                    gpio_set_level( axis.m_dirGpio, axis.m_direction );
+                    ESP_LOGI( "PARK", "STOP BACK" );
+                    changedOnce = true;
+                }
                 ESP_LOGI( "PARK", "STOP AZ_BACK" );
-                axis.m_direction = COUNTERCLOCKWISE;
-                axis.m_steps = ANGLE_180 + 1;
-                gpio_set_level( axis.m_dirGpio, axis.m_direction );
-                changedOnce = true;
+
+                tries++;
             }
         }
         else
@@ -210,7 +237,7 @@ void StepMotor::Movement( std::uint8_t XDirection,
         lessesSpeed = greaterValue/lesserValue * MAX_SPEED;
     }
 
-    ESP_LOGI( "Teste", "Moving %llu steps", lessesSpeed );
+    //ESP_LOGI( "Teste", "Moving %llu steps", lessesSpeed );
 
     if( greaterValue == XSteps )
     {
@@ -224,6 +251,18 @@ void StepMotor::Movement( std::uint8_t XDirection,
     }
 
     m_movementList.push_back( { XAxis, YAxis } );
+}
+
+std::string StepMotor::stepDirection( std::uint8_t direction )
+{
+    if( direction == CLOCKWISE )
+    {
+        return std::string("CLOCKWISE");
+    }
+    else
+    {
+        return std::string("COUNTERCLOCKWISE");
+    }
 }
 
 void StepMotor::Park()
