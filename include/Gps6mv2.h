@@ -7,6 +7,8 @@
 #include <esp_log.h>
 #include <cstring>
 
+#include <tuple>
+
 namespace GPS
 {
     class Gps6mv2
@@ -24,15 +26,23 @@ namespace GPS
         Gps6mv2();
         ~Gps6mv2();
 
-        void initUART0();
         void initUART2();
 
         void sendData();
-        void receiveData();
+        static void receiveData( void* pTaskInstance );
+
+        bool HasGPSLocation();
+        std::tuple< double, double, double > GpsInformation();
+
     private:
         uart_port_t uart_num;
         uart_config_t uart_config;
         int uart_buffer_size;
+        double m_latitude;
+        double m_longitude;
+        double m_altitude;
+        bool m_hasValue;
+
         QueueHandle_t uart_queue;
     };
 }

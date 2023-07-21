@@ -85,14 +85,12 @@ void StepMotor::Run( void* pTaskInstance )
                 if( pTask->m_XAxis.m_steps > 0 )
                 {
                     gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
-                    ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "LEL" );
                     threadX = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_XAxis );
                 }
 
                 if( pTask->m_YAxis.m_steps > 0 )
                 {
                     gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
-                    ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "LOL" );
                     threadY = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_YAxis );
                 }
 

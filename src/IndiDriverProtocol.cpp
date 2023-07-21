@@ -14,7 +14,6 @@ IndiDriverProtocol::IndiDriverProtocol() :
     m_needToStop( false ),
     m_crc( 0 )
 {
-
 }
 
 void IndiDriverProtocol::translateMessage( char* message )
@@ -84,9 +83,3 @@ double IndiDriverProtocol::getDoubleValues( char* toTransform )
     memcpy( &convertedValue, toTransform, sizeof( double ) );
     return convertedValue;
 }
-
-        // wordRegex = R"(\d+)";
-        // if( std::regex_search( data, matchRegex, wordRegex ) )
-        // {
-        //     m_azimuthSteps = matchRegex[1];
-        // }
