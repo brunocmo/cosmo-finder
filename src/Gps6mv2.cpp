@@ -7,7 +7,7 @@ using namespace GPS;
 Gps6mv2::Gps6mv2()
 {
     m_hasValue = false;
-    uart_buffer_size = (1024);
+    uart_buffer_size = 1024;
 
     m_latitude = 0;
     m_longitude = 0;
@@ -58,10 +58,12 @@ void Gps6mv2::receiveData( void* pTaskInstance )
 
     wordRegex = R"(\$GPGGA,[\d\.]+,(\d+.\d+),(\w),(\d+.\d+)+,(\w),\d*,\d*,[\d\.]*,(\d+.\d+)*,.+)";
 
-    char* data = (char*)malloc(pTask->uart_buffer_size+1);
+    ESP_LOGI(RX_TASK_TAG, "TESTE");
+    char wtf[1024] = {0};
+    char* data = wtf;
     int rxBytes = 0;
 
-    while( !pTask->m_hasValue )
+    while( 1 )
     {
         ESP_LOGI(RX_TASK_TAG, "LI");
         rxBytes = uart_read_bytes(UART_NUM_2, data, pTask->uart_buffer_size, 5000 / portTICK_PERIOD_MS);
@@ -83,15 +85,15 @@ void Gps6mv2::receiveData( void* pTaskInstance )
                 if( matchRegex[4] == 'W' ) pTask->m_longitude *= -1;
                 pTask->m_altitude = std::stod( matchRegex[5] );
                 pTask->m_hasValue = true;
+                break;
             }
         }
     }
 
-    free(data);
-
     while( 1 )
     {
         vTaskDelay( 5000/portTICK_PERIOD_MS );
+        std::cout << "meucu" << '\n';
     }
 
 }
@@ -109,4 +111,201 @@ std::tuple< double, double, double > Gps6mv2::GpsInformation()
         return { m_latitude, m_longitude, m_altitude };
     }
     return { 0, 0, 0 };
+}
+
+bool Gps6mv2::readGPSLatitudePersistence()
+{
+    ESP_ERROR_CHECK( nvs_flash_init_partition("nvsData") );
+
+    nvs_handle_t partitionHandle;
+    esp_err_t responseNVS = nvs_open_from_partition("nvsData", "gpsPersist", NVS_READONLY, &partitionHandle );
+
+    int32_t latitude{0};
+
+    if( responseNVS == ESP_ERR_NVS_NOT_FOUND )
+    {
+        ESP_LOGE("gpsLatitude", "Namespace not found");
+        nvs_close( partitionHandle );
+        return false;
+    }
+    else
+    {
+        esp_err_t responseStr = nvs_get_i32(responseNVS, "latitude", &latitude);
+
+        switch( responseStr )
+        {
+            case ESP_OK:
+                std::cout << "Latitude value: " << latitude << '\n';
+                //m_latitude = std::stod( latitude );
+                break;
+            case ESP_ERR_NOT_FOUND:
+                ESP_LOGE("gpsLatitude", "latitude not found");
+                nvs_close( partitionHandle );
+                return false;
+            default:
+                ESP_LOGE("gpsLatitude", "Error to get NVS (%s)", esp_err_to_name(responseStr));
+                nvs_close( partitionHandle );
+                return false;
+        }
+
+        nvs_close( partitionHandle );
+        return true;
+    }
+}
+
+bool Gps6mv2::writeGPSLatitudePersistence( double latitude )
+{
+    ESP_ERROR_CHECK( nvs_flash_init_partition("nvsData") );
+
+    nvs_handle_t partitionHandle;
+    esp_err_t responseNVS = nvs_open_from_partition("nvsData", "gpsPersist", NVS_READWRITE, &partitionHandle );
+
+    if( responseNVS == ESP_ERR_NVS_NOT_FOUND )
+    {
+        ESP_LOGE("gpsLatitude", "Namespace not found");
+        nvs_close( partitionHandle );
+        return false;
+    }
+    else
+    {
+        esp_err_t responseStr = nvs_set_i32(responseNVS, "latitude", 13 );
+
+
+        ESP_LOGE("gpsLatitude", "Error to get NVS (%s)", esp_err_to_name(responseStr));
+
+
+        nvs_commit( partitionHandle );
+        nvs_close( partitionHandle );
+        return true;
+    }
+}
+
+bool Gps6mv2::readGPSLongitudePersistence()
+{
+    ESP_ERROR_CHECK( nvs_flash_init() );
+
+    nvs_handle partitionHandle;
+    esp_err_t responseNVS = nvs_open("gpsPersist", NVS_READONLY, &partitionHandle );
+
+    size_t sizeLong = 12;
+    char longitude[12] = {0};
+
+    if( responseNVS == ESP_ERR_NVS_NOT_FOUND )
+    {
+        ESP_LOGE("gpsLongitude", "Namespace not found");
+        return false;
+    }
+    else
+    {
+        esp_err_t responseStr = nvs_get_str(responseNVS, "longitude", longitude, &sizeLong );
+
+        switch( responseStr )
+        {
+            case ESP_OK:
+                std::cout << "Longitude value: " << longitude << '\n';
+                m_longitude = std::stod( longitude );
+                break;
+            case ESP_ERR_NOT_FOUND:
+                ESP_LOGE("gpsLongitude", "Longitude not found");
+                return false;
+            default:
+                ESP_LOGE("gpsLongitude", "Error to get NVS (%s)", esp_err_to_name(responseStr));
+                return false;
+        }
+
+        nvs_close( partitionHandle );
+        return true;
+    }
+}
+
+bool Gps6mv2::writeGPSLongitudePersistence( double longitude )
+{
+    ESP_ERROR_CHECK( nvs_flash_init() );
+
+    nvs_handle partitionHandle;
+    esp_err_t responseNVS = nvs_open("gpsPersist", NVS_READWRITE, &partitionHandle );
+
+    if( responseNVS == ESP_ERR_NVS_NOT_FOUND )
+    {
+        ESP_LOGE("gpsLongitude", "Namespace not found");
+        return false;
+    }
+    else
+    {
+        esp_err_t responseStr = nvs_set_str(responseNVS, "longitude", std::to_string(longitude).c_str() );
+
+        if( responseStr == ESP_ERR_NVS_NOT_FOUND )
+        {
+            ESP_LOGE("gpsLongitude", "Error to get NVS (%s)", esp_err_to_name(responseStr));
+            return false;
+        }
+
+        nvs_close( partitionHandle );
+        return true;
+    }
+}
+
+bool Gps6mv2::readGPSAltitudePersistence()
+{
+    ESP_ERROR_CHECK( nvs_flash_init() );
+
+    nvs_handle partitionHandle;
+    esp_err_t responseNVS = nvs_open("gpsPersist", NVS_READONLY, &partitionHandle );
+
+    size_t sizeLong = 9;
+    char altitude[9] = {0};
+
+    if( responseNVS == ESP_ERR_NVS_NOT_FOUND )
+    {
+        ESP_LOGE("gpsAltitude", "Namespace not found");
+        return false;
+    }
+    else
+    {
+        esp_err_t responseStr = nvs_get_str(responseNVS, "altitude", altitude, &sizeLong );
+
+        switch( responseStr )
+        {
+            case ESP_OK:
+                std::cout << "altitude value: " << altitude << '\n';
+                m_altitude = std::stod( altitude );
+                break;
+            case ESP_ERR_NOT_FOUND:
+                ESP_LOGE("gpsAltitude", "altitude not found");
+                return false;
+            default:
+                ESP_LOGE("gpsAltitude", "Error to get NVS (%s)", esp_err_to_name(responseStr));
+                return false;
+        }
+
+        nvs_close( partitionHandle );
+        return true;
+    }
+}
+
+bool Gps6mv2::writeGPSAltitudePersistence( double altitude )
+{
+    ESP_ERROR_CHECK( nvs_flash_init() );
+
+    nvs_handle partitionHandle;
+    esp_err_t responseNVS = nvs_open("gpsPersist", NVS_READWRITE, &partitionHandle );
+
+    if( responseNVS == ESP_ERR_NVS_NOT_FOUND )
+    {
+        ESP_LOGE("gpsAltitude", "Namespace not found");
+        return false;
+    }
+    else
+    {
+        esp_err_t responseStr = nvs_set_str(responseNVS, "altitude", std::to_string(altitude).c_str() );
+
+        if( responseStr == ESP_ERR_NVS_NOT_FOUND )
+        {
+            ESP_LOGE("gpsAltitude", "Error to get NVS (%s)", esp_err_to_name(responseStr));
+            return false;
+        }
+
+        nvs_close( partitionHandle );
+        return true;
+    }
 }

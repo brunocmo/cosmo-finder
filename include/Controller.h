@@ -20,7 +20,7 @@ public:
     void Run();
     void machineState();
 
-    void printLCD( char* upRow, char* downRow );
+    void printLCD( std::string upRow, std::string downRow );
 
     TaskHandle_t m_gpsHandle;
     TaskHandle_t m_commsHandle;

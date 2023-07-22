@@ -35,9 +35,6 @@ void IndiDriverProtocol::translateMessage( char* message )
         m_needToPark = true;
         break;
     case GetLocation:
-        m_latitude = getDoubleValues( &message[1] );
-        m_longitude = getDoubleValues( &message[10] );
-        m_elevation = getFloatValues( &message[19] );
         break;
     case Stop:
         m_needToStop = true;

@@ -3,7 +3,8 @@
 int hasResponse = 1;
 
 Comms::Comms()
-{ 
+{
+    hasSendValue = false;
 }
 
 void Comms::Init()
@@ -96,18 +97,18 @@ void Comms::RunTCPServer( void* pTaskInstance )
 
                 memcpy( pTask->receiveBuffer , valorRecebido, 255 );
 
-                while( pTask->sendBuffer.empty() )
+                while( !pTask->hasSendValue )
                 {
                     vTaskDelay( 300 / portTICK_PERIOD_MS );
                 }
 
-                int n = send( pTask->connectionDescriptor, pTask->sendBuffer.c_str(), pTask->sendBuffer.size(), 0 );
+                int n = send( pTask->connectionDescriptor, pTask->sendBuffer, 28, 0 );
 
                 if( n == -1 ) {
                     std::cout << "Erro ao enviar msg" << '\n';
                 }
             
-                pTask->sendBuffer.clear();
+                pTask->hasSendValue = false;
             }
         }
         vTaskDelay( 300 / portTICK_PERIOD_MS );
@@ -121,7 +122,8 @@ char* Comms::receiveCommand()
     return tempReceiveBuffer;
 }
 
-void Comms::sendCommand( std::string message )
+void Comms::sendCommand( const char* message )
 {
-    sendBuffer = message;
+    strcpy( sendBuffer, message );
+    hasSendValue = true;
 }

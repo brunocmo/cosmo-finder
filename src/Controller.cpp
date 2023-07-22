@@ -71,6 +71,7 @@ void Controller::machineState()
             }
             case IndiDriverProtocol::GetLocation:
             {
+                std::cout << "Entrei getLocation " << '\n';
                 std::tuple< double, double, double > gpsInfo{ m_gps.GpsInformation() };
 
                 double longitude{ std::get<0>( gpsInfo ) };
@@ -89,7 +90,15 @@ void Controller::machineState()
                 streamptr += sizeof(double);
                 *streamptr++ = '\0';
 
-                m_communication.sendCommand( std::string( stream ) );
+                for( int i{0}; i<28; i++)
+                {
+                    std::cout << std::hex << (int)stream[i] << " ";
+                }
+                std::cout << '\n';
+
+                std::cout << "travar? " << '\n';
+
+                m_communication.sendCommand( stream );
                 break;
             }
             case IndiDriverProtocol::Stop:
@@ -118,11 +127,11 @@ void Controller::machineState()
     }
 }
 
-void Controller::printLCD( char* upRow, char* downRow )
+void Controller::printLCD( std::string upRow, std::string downRow )
 {
     LCD_home();
     LCD_clearScreen();
-    LCD_writeStr(upRow);
+    LCD_writeStr(upRow.c_str());
     LCD_setCursor(0, 1);
-    LCD_writeStr(downRow);
+    LCD_writeStr(downRow.c_str());
 }

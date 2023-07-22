@@ -19,6 +19,7 @@
 
 #include "Wifi.h"
 #include "HD44780.h"
+#include "Encoder.h"
 
 #define LCD_ADDR 0x27
 #define SDA_PIN  21
