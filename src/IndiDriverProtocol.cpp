@@ -14,13 +14,10 @@ IndiDriverProtocol::IndiDriverProtocol() :
     m_needToStop( false ),
     m_crc( 0 )
 {
-
 }
 
 void IndiDriverProtocol::translateMessage( char* message )
 {
-    std::regex wordRegex;
-    std::smatch matchRegex;
     m_commandId = static_cast< std::uint8_t >( message[0] );
 
     switch ( m_commandId )
@@ -28,17 +25,12 @@ void IndiDriverProtocol::translateMessage( char* message )
     case GoTo:
     case Track:
         m_azimuthSteps = getIntValues( &message[1] );
-        //std::cout << "debug " << m_azimuthSteps << "\n";
         m_altitudeSteps = getIntValues( &message[6] );
-        //std::cout << "debug2 " << m_altitudeSteps << "\n";
         break;
     case Park:
         m_needToPark = true;
         break;
     case GetLocation:
-        m_latitude = getDoubleValues( &message[1] );
-        m_longitude = getDoubleValues( &message[10] );
-        m_elevation = getFloatValues( &message[19] );
         break;
     case Stop:
         m_needToStop = true;
@@ -84,9 +76,3 @@ double IndiDriverProtocol::getDoubleValues( char* toTransform )
     memcpy( &convertedValue, toTransform, sizeof( double ) );
     return convertedValue;
 }
-
-        // wordRegex = R"(\d+)";
-        // if( std::regex_search( data, matchRegex, wordRegex ) )
-        // {
-        //     m_azimuthSteps = matchRegex[1];
-        // }

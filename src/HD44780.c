@@ -110,7 +110,7 @@ void LCD_writeChar(char c)
     LCD_writeByte(c, LCD_WRITE);                                        // Write data to DDRAM
 }
 
-void LCD_writeStr(char* str)
+void LCD_writeStr(const char* str)
 {
     while (*str) {
         LCD_writeChar(*str++);

@@ -26,12 +26,12 @@ public:
 
     static void RunTCPServer( void* pTaskInstance );
 
-    void sendCommand( std::string message );
+    void sendCommand( const char* message );
     char* receiveCommand();
 
     char receiveBuffer[255];
     int sizeOfBuffer;
-    std::string sendBuffer; 
+    char sendBuffer[28]; 
 
     char tempReceiveBuffer[255];
 
@@ -41,5 +41,6 @@ public:
 	unsigned short servidorPorta = 16188;
 	socklen_t clienteLength;
     int connectionDescriptor;
+    bool hasSendValue;
 
 };

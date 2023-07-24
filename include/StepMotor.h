@@ -10,6 +10,8 @@
 #include <vector>
 #include <memory>
 
+#include "Encoder.h"
+
 class StepMotor
 {
 public:
@@ -73,11 +75,12 @@ public:
 
 private:
 
-
+    Encoder encoderX;
+    Encoder encoderY;
 
     void setupPinOut( gpio_num_t pinSet );
     void setupPinIn( gpio_num_t pinSet, bool isPullUp );
-    static void slewing( motorPasso axis );
+    static void slewing( motorPasso axis, Encoder encoder );
     static void parkSlewing( motorPasso axis );
 
     std::string stepDirection( std::uint8_t direction );

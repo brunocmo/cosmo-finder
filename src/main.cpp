@@ -19,6 +19,7 @@
 
 #include "Wifi.h"
 #include "HD44780.h"
+#include "Encoder.h"
 
 #define LCD_ADDR 0x27
 #define SDA_PIN  21
@@ -90,6 +91,17 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(gpio_pulldown_dis(GPIO_NUM_25));
     ESP_ERROR_CHECK(gpio_pullup_dis(GPIO_NUM_25));
     gpio_set_level( GPIO_NUM_25, 1 );
+
+    ESP_ERROR_CHECK(gpio_reset_pin(GPIO_NUM_2));
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_2, GPIO_MODE_INPUT));
+    ESP_ERROR_CHECK(gpio_pulldown_dis(GPIO_NUM_2));
+    ESP_ERROR_CHECK(gpio_pullup_en(GPIO_NUM_2));
+
+    ESP_ERROR_CHECK(gpio_reset_pin(GPIO_NUM_4));
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_4, GPIO_MODE_INPUT));
+    ESP_ERROR_CHECK(gpio_pulldown_dis(GPIO_NUM_4));
+    ESP_ERROR_CHECK(gpio_pullup_en(GPIO_NUM_4));
+
 
     LCD_init(LCD_ADDR, SDA_PIN, SCL_PIN, LCD_COLS, LCD_ROWS);
 

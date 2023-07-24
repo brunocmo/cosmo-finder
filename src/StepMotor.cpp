@@ -52,6 +52,10 @@ void StepMotor::Init()
 
     setupPinOut( m_XAxis.m_stepGpio );
     setupPinOut( m_XAxis.m_dirGpio );
+
+    encoderX.Setup( 23, 4, -10, 10 );
+    encoderY.Setup( 18, 19, -10, 10 );
+
     setupPinOut( m_YAxis.m_stepGpio );
     setupPinOut( m_YAxis.m_dirGpio );
 
@@ -65,6 +69,9 @@ void StepMotor::Init()
 void StepMotor::Run( void* pTaskInstance )
 {
     StepMotor* pTask = (StepMotor* ) pTaskInstance;
+    pTask->encoderX.Run();
+    pTask->encoderY.Run();
+
 
     while(1)
     {
@@ -85,15 +92,13 @@ void StepMotor::Run( void* pTaskInstance )
                 if( pTask->m_XAxis.m_steps > 0 )
                 {
                     gpio_set_level( pTask->m_XAxis.m_dirGpio, pTask->m_XAxis.m_direction );
-                    ESP_LOGI( pTask->m_XAxis.m_log.c_str(), "LEL" );
-                    threadX = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_XAxis );
+                    threadX = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_XAxis, pTask->encoderX );
                 }
 
                 if( pTask->m_YAxis.m_steps > 0 )
                 {
                     gpio_set_level( pTask->m_YAxis.m_dirGpio, pTask->m_YAxis.m_direction );
-                    ESP_LOGI( pTask->m_YAxis.m_log.c_str(), "LOL" );
-                    threadY = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_YAxis );
+                    threadY = std::make_unique< std::thread > ( StepMotor::slewing, pTask->m_YAxis, pTask->encoderY );
                 }
 
                 if( threadX )
@@ -153,14 +158,25 @@ void StepMotor::Run( void* pTaskInstance )
     }
 }
 
-void StepMotor::slewing( motorPasso axis )
+void StepMotor::slewing( motorPasso axis, Encoder encoder )
 {
+    int pulse_count{ 0 };
     while( axis.m_steps-- && !stop )
     {
         gpio_set_level( axis.m_stepGpio, 1 );
         std::this_thread::sleep_for( std::chrono::microseconds( axis.m_speed ));
         gpio_set_level( axis.m_stepGpio, 0 );
         std::this_thread::sleep_for( std::chrono::microseconds( axis.m_speed ));
+        // ESP_ERROR_CHECK( pcnt_unit_get_count( encoder.pcnt_unit, &pulse_count ) );
+        // if( pulse_count == 0)
+        // {
+        //     //ESP_LOGI( axis.m_log.c_str(), "Step Loss, adding more: %llu steps left", axis.m_steps );
+        //     axis.m_steps++;
+        // }
+        // else
+        // {
+        //     ESP_ERROR_CHECK( pcnt_unit_clear_count( encoder.pcnt_unit ) );
+        // }
     }
 }
 
