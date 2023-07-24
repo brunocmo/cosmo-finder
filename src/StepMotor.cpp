@@ -53,8 +53,8 @@ void StepMotor::Init()
     setupPinOut( m_XAxis.m_stepGpio );
     setupPinOut( m_XAxis.m_dirGpio );
 
-    encoderX.Setup( 2, 4, -5, 5 );
-    encoderY.Setup( 18, 19, -5, 5 );
+    encoderX.Setup( 23, 4, -10, 10 );
+    encoderY.Setup( 18, 19, -10, 10 );
 
     setupPinOut( m_YAxis.m_stepGpio );
     setupPinOut( m_YAxis.m_dirGpio );
@@ -167,16 +167,16 @@ void StepMotor::slewing( motorPasso axis, Encoder encoder )
         std::this_thread::sleep_for( std::chrono::microseconds( axis.m_speed ));
         gpio_set_level( axis.m_stepGpio, 0 );
         std::this_thread::sleep_for( std::chrono::microseconds( axis.m_speed ));
-        ESP_ERROR_CHECK( pcnt_unit_get_count( encoder.pcnt_unit, &pulse_count ) );
-        if( pulse_count == 0)
-        {
-            ESP_LOGI( axis.m_log.c_str(), "Step Loss, adding more: %llu steps left", axis.m_steps );
-            axis.m_steps++;
-        }
-        else
-        {
-            ESP_ERROR_CHECK( pcnt_unit_clear_count( encoder.pcnt_unit ) );
-        }
+        // ESP_ERROR_CHECK( pcnt_unit_get_count( encoder.pcnt_unit, &pulse_count ) );
+        // if( pulse_count == 0)
+        // {
+        //     //ESP_LOGI( axis.m_log.c_str(), "Step Loss, adding more: %llu steps left", axis.m_steps );
+        //     axis.m_steps++;
+        // }
+        // else
+        // {
+        //     ESP_ERROR_CHECK( pcnt_unit_clear_count( encoder.pcnt_unit ) );
+        // }
     }
 }
 

@@ -66,7 +66,7 @@ bool Encoder::interruptExample(pcnt_unit_handle_t unit, const pcnt_watch_event_d
 void Encoder::Run()
 {
     cbs = { interruptExample };
-    queue = xQueueCreate( 10, sizeof(int) );
+    queue = xQueueCreate( 100, sizeof(int) );
     ESP_ERROR_CHECK( pcnt_unit_register_event_callbacks ( pcnt_unit, &cbs, queue ) );
 
     ESP_LOGI(encoderLog.c_str(), "enable pcnt unit");

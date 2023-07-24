@@ -18,8 +18,6 @@ IndiDriverProtocol::IndiDriverProtocol() :
 
 void IndiDriverProtocol::translateMessage( char* message )
 {
-    std::regex wordRegex;
-    std::smatch matchRegex;
     m_commandId = static_cast< std::uint8_t >( message[0] );
 
     switch ( m_commandId )
@@ -27,9 +25,7 @@ void IndiDriverProtocol::translateMessage( char* message )
     case GoTo:
     case Track:
         m_azimuthSteps = getIntValues( &message[1] );
-        //std::cout << "debug " << m_azimuthSteps << "\n";
         m_altitudeSteps = getIntValues( &message[6] );
-        //std::cout << "debug2 " << m_altitudeSteps << "\n";
         break;
     case Park:
         m_needToPark = true;

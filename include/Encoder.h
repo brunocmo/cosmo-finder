@@ -5,6 +5,7 @@
 #include "freertos/queue.h"
 #include "esp_log.h"
 #include "driver/pulse_cnt.h"
+#include "driver/pulse_cnt.h"
 #include "driver/gpio.h"
 #include "esp_sleep.h"
 
